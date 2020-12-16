@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 from datetime import datetime as dt
+from lib import config
 
 
 def sorted_list(path, folder):
@@ -64,19 +65,22 @@ def station_skr(item, path):
                 for line in data_from_file:
                     line = line.split(' ')
                     if line[1] == '1':
-                        # inf['SKRI D0 20'].append(str(float(line[1].strip())) + '\n')
                         channels['SKRI D0 20'].append(
-                            str((float(line[2].strip()) * 0.00000035 + 0.0001) / 0.07865) + '\n')
+                            config.get_station_line(line=line, station='skr', channel='SKRI')
+                        )
                     elif line[1] == '2':
-                        channels['SKRG_EF4_2 D0 20'].append(str(
-                            (-717.82 * ((float(line[2].strip()) * 0.00000035 + 0.0001) * 5) + 18.458) * 0.135) + '\n')
+                        channels['SKRG_EF4_2 D0 20'].append(
+                            config.get_station_line(line=line, station='skr', channel='SKRG_EF4_2')
+                        )
                     elif line[1] == '3':
-                        channels['SKRG_EF0001_2 D0 20'].append(str(
-                            (1329.6 * ((float(line[2].strip()) * 0.00000035 + 0.0001) * 5) - 47.295) * 0.141) + '\n')
+                        channels['SKRG_EF0001_2 D0 20'].append(
+                            config.get_station_line(line=line, station='skr', channel='SKRG_EF0001_2')
+                        )
 
                     else:
                         # inf['SKRI D0 20'].append(str(float(line[1].strip())) + '\n')
-                        channels['SKRP D0 100'].append(str((float(line[2].strip()) * 0.00000035 + 0.0001) * 3.7) + '\n')
+                        channels['SKRP D0 100'].append(
+                            config.get_station_line(line=line, station='skr', channel='SKRP'))
 
                 del data_from_file
 
@@ -103,6 +107,7 @@ def station_kly(item, path):
                 for line in data_from_file:
                     line = line.split(' ')
                     channels['KLY_EF4-3 D0 20'].append(
+                        # TODO: change by config value
                         str(((2041 * (((0.000000345 * (float(line[2].strip()))) + 0.0001) * 11)) + 42.375) / 4) + '\n')
 
                 del data_from_file
@@ -130,6 +135,7 @@ def station_kbg(item, path):
                 for line in data_from_file:
                     line = line.split(' ')
                     channels['KBG_EF4 D0 20'].append(str(
+                        # TODO: change by config value
                         ((-1392.5 * (((0.00000035 * (float(line[2].strip()))) + 0.0001) * 5)) - 73.671) / 10) + '\n')
 
                 del data_from_file
@@ -160,9 +166,12 @@ def station_pet(item, path):
 
                     if line[1] == '1':
                         channels['PET_EF4-4 D0 20'].append(
+                            # TODO: change by config value
                             str((386.63 * (((0.000000345 * (float(line[2].strip()))) + 0.0001) * 3)) + 54.902) + '\n')
                     else:
-                        channels['PET_EF1 D0 20'].append(str(((-6099.5 * (
+                        channels['PET_EF1 D0 20'].append(str(
+                            # TODO: change by config value
+                            ((-6099.5 * (
                                 ((0.000000345 * (float(line[2].strip()))) + 0.0001) * 1)) - 185.73) / 5) + '\n')
 
                 del data_from_file
