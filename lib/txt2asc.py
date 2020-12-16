@@ -167,13 +167,12 @@ def station_pet(item, path):
 
                     if line[1] == '1':
                         channels['PET_EF4-4 D0 20'].append(
-                            # TODO: change by config value
-                            str((386.63 * (((0.000000345 * (float(line[2].strip()))) + 0.0001) * 3)) + 54.902) + '\n')
+                            config.get_station_line(line=line, station='pet', channel='PET_EF4-4')
+                        )
                     else:
-                        channels['PET_EF1 D0 20'].append(str(
-                            # TODO: change by config value
-                            ((-6099.5 * (
-                                ((0.000000345 * (float(line[2].strip()))) + 0.0001) * 1)) - 185.73) / 5) + '\n')
+                        channels['PET_EF1 D0 20'].append(
+                            config.get_station_line(line=line, station='pet', channel='PET_EF1')
+                        )
 
                 del data_from_file
 

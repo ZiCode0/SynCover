@@ -14,6 +14,9 @@ def get_station_line(line, station, channel):
                             },
                     'kbg': {'KBG_EF4': ((-1392.5 * (((0.00000035 * float_line) + 0.0001) * 5)) - 73.671) / 10
                             },
+                    'pet': {'PET_EF4-4': (386.63 * (((0.000000345 * float_line) + 0.0001) * 3)) + 54.902,
+                            'PET_EF1': ((-6099.5 * (((0.000000345 * float_line) + 0.0001) * 1)) - 185.73) / 5
+                            }
                     }
 
     return '{station_line}\n'.format(station_line=str(station_line[station][channel]))
