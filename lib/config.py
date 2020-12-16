@@ -4,6 +4,13 @@ data_folder = 'data'
 
 
 def get_station_line(line, station, channel):
+    """
+    Dynamic value changer for station record output
+    :param line: string input number
+    :param station: station name
+    :param channel: station channel
+    :return: formatted string
+    """
     float_line = float(line[2].strip())
     station_line = {'skr': {'SKRI':         (float_line * 0.00000035 + 0.0001) / 0.07865,
                             'SKRG_EF4_2':   (-717.82 * ((float_line * 0.00000035 + 0.0001) * 5) + 18.458) * 0.135,

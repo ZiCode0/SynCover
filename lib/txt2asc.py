@@ -78,7 +78,6 @@ def station_skr(item, path):
                         )
 
                     else:
-                        # inf['SKRI D0 20'].append(str(float(line[1].strip())) + '\n')
                         channels['SKRP D0 100'].append(
                             config.get_station_line(line=line, station='skr', channel='SKRP')
                         )
