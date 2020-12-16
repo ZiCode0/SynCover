@@ -10,6 +10,10 @@ def get_station_line(line, station, channel):
                             'SKRG_EF0001_2': (1329.6 * ((float_line * 0.00000035 + 0.0001) * 5) - 47.295) * 0.141,
                             'SKRP':         (float_line * 0.00000035 + 0.0001) * 3.7
                             },
-                    'kly': {'KLY_EF4-3': ((2041 * (((0.000000345 * float_line) + 0.0001) * 11)) + 42.375) / 4}
+                    'kly': {'KLY_EF4-3': ((2041 * (((0.000000345 * float_line) + 0.0001) * 11)) + 42.375) / 4
+                            },
+                    'kbg': {'KBG_EF4': ((-1392.5 * (((0.00000035 * float_line) + 0.0001) * 5)) - 73.671) / 10
+                            },
                     }
+
     return '{station_line}\n'.format(station_line=str(station_line[station][channel]))

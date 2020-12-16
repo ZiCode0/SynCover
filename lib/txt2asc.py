@@ -80,7 +80,8 @@ def station_skr(item, path):
                     else:
                         # inf['SKRI D0 20'].append(str(float(line[1].strip())) + '\n')
                         channels['SKRP D0 100'].append(
-                            config.get_station_line(line=line, station='skr', channel='SKRP'))
+                            config.get_station_line(line=line, station='skr', channel='SKRP')
+                        )
 
                 del data_from_file
 
@@ -107,7 +108,8 @@ def station_kly(item, path):
                 for line in data_from_file:
                     line.split(' ')
                     channels['KLY_EF4-3 D0 20'].append(
-                        config.get_station_line(line=line, station='kly', channel='KLY_EF4-3'))
+                        config.get_station_line(line=line, station='kly', channel='KLY_EF4-3')
+                    )
 
                 del data_from_file
 
@@ -133,9 +135,9 @@ def station_kbg(item, path):
 
                 for line in data_from_file:
                     line = line.split(' ')
-                    channels['KBG_EF4 D0 20'].append(str(
-                        # TODO: change by config value
-                        ((-1392.5 * (((0.00000035 * (float(line[2].strip()))) + 0.0001) * 5)) - 73.671) / 10) + '\n')
+                    channels['KBG_EF4 D0 20'].append(
+                        config.get_station_line(line=line, station='kbg', channel='KBG_EF4')
+                    )
 
                 del data_from_file
 
