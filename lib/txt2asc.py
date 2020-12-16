@@ -105,10 +105,9 @@ def station_kly(item, path):
                 data_from_file = file.readlines()
 
                 for line in data_from_file:
-                    line = line.split(' ')
+                    line.split(' ')
                     channels['KLY_EF4-3 D0 20'].append(
-                        # TODO: change by config value
-                        str(((2041 * (((0.000000345 * (float(line[2].strip()))) + 0.0001) * 11)) + 42.375) / 4) + '\n')
+                        config.get_station_line(line=line, station='kly', channel='KLY_EF4-3'))
 
                 del data_from_file
 
