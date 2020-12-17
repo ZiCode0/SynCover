@@ -33,6 +33,7 @@ def main():
                 files.move_from_sub_folder(target_folder)
                 txt2asc.run_converter(station.define_station_by_pathname(target_folder), target_folder)
                 files.used_files_cleaner(target_folder)
+                files.move_channel_files(config.data_folder)
             # timer to sleep
             time.sleep(config.scan_data_folder_in_seconds)
         else:

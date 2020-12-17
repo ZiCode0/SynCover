@@ -67,3 +67,36 @@ def used_files_cleaner(target_folder):
                 except Exception as ex:
                     # catch unknown error
                     print(ex)
+
+
+def create_channel_folder(channel_name):
+    """
+    Create channel folder in data source if not exist
+    :param channel_name: target channel folder name
+    :return:
+    """
+    target_path = os.path.join(config.data_folder, channel_name)
+    # check channel folder name in data folder
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+
+def move_channel_files(target_folder):
+    """
+    Move files to channel folders. Detect target channel folder with file ending
+    :return:
+    """
+    # target_folder_dest, target_path_name = os.path.split(target_folder)
+    dir_list = os.listdir(target_folder)
+    for path in dir_list:
+        # check if target is file
+        if os.path.isfile(os.path.join(target_folder, path)):
+            # parse channel list
+            for channel_codename in config.channels_list:
+                # check ending
+                if path.endswith(channel_codename + config.result_ext):
+                    # create channel folder
+                    create_channel_folder(channel_codename)
+                    # move to channel folder
+                    shutil.move(os.path.join(target_folder, path),
+                                os.path.join(target_folder, channel_codename, path))
