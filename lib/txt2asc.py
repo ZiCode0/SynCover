@@ -37,7 +37,8 @@ def head_maker(date, time):
 
 
 def file_constructor(path, key, head, station, channel, head_key, collector):
-    file_wr = open(os.path.join(path, key + '_{channel}.asc'.format(channel=channel)), 'a')
+    file_wr = open(os.path.join(path,
+                                key + '_{channel}'.format(channel=channel) + config.result_ext), 'a')
     file_wr.write('\n{head} {station} {head_key} {size}\n'.format(head=head,
                                                                   station=station,
                                                                   channel=channel,

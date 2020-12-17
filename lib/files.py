@@ -1,7 +1,7 @@
 import os
 import shutil
 
-import lib.config as conf
+from lib import config
 
 
 def list_data_folder_files(target_ext='.zip'):
@@ -11,7 +11,7 @@ def list_data_folder_files(target_ext='.zip'):
     :return: list of files in target data folder
     """
     res = []
-    for file in os.listdir(conf.data_folder):
+    for file in os.listdir(config.data_folder):
         if file.endswith(target_ext):
             res.append(file)
     return res
@@ -57,7 +57,7 @@ def used_files_cleaner(target_folder):
     dir_list = os.listdir(target_folder_dest)
     for file in dir_list:
         if target_path_name in file:
-            if not file.endswith('.asc'):
+            if not file.endswith(config.result_ext):
                 try:
                     # remove temp dir
                     shutil.rmtree(os.path.join(target_folder_dest, file))
