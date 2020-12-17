@@ -199,7 +199,7 @@ def create_convert_object(target_folder):
 
 def run_converter(station_name, target_folder):
     """
-    Convert txt files of folder to asc format
+    Convert txt files of target folder to asc format
     :param station_name: select station name converter
     :param target_folder: target folder to convert
     """
@@ -211,7 +211,7 @@ def run_converter(station_name, target_folder):
     {'KLY_2020-09-01' = ['00.txt', '01.txt', '02.txt', '03.txt'],
      'KLY_2020-09-02' = ['00.txt', '01.txt', '02.txt', '03.txt']}
     where:
-        key = target folder
+        key: target folder
         values: files of target folder
     :param path: data folder path to store result
     """
