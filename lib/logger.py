@@ -12,7 +12,7 @@ def init_logger(program_name, log_level='DEBUG'):
     logger.add('{program_name}.log'.format(program_name=program_name),
                format='{time:!UTC} {level} {message}',
                level=log_level,
-               rotation='10 KB',
+               rotation='1 MB',
                compression='zip')
     # add mail notification
     notify.add_gmail_sender(logger)
