@@ -3,6 +3,7 @@ import os
 
 from notifiers.logging import NotificationHandler
 from read_env import read_env
+from lib import strings
 
 
 read_env()
@@ -64,7 +65,8 @@ def add_gmail_sender(logger):
     params = {
         "username": notify_vars.get('mail_login'),
         "password": notify_vars.get('mail_pass'),
-        "to": notify_vars.get('mail_to')
+        "to": notify_vars.get('mail_to'),
+        "subject": strings.Report.mail_subject
     }
     handler = NotificationHandler("gmail", defaults=params)
     logger.add(handler, level="ERROR")
