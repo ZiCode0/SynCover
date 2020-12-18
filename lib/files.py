@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from pathlib import Path
+
 from lib import config
 
 
@@ -100,3 +102,29 @@ def move_channel_files(target_folder):
                     # move to channel folder
                     shutil.move(os.path.join(target_folder, path),
                                 os.path.join(target_folder, channel_codename, path))
+
+
+def get_last_log_files(log_count=1, select_zips=True):
+    """Returns last log file in zip
+    :param select_zips: switch flag
+    :type log_count: amount of log files to grab
+    """
+    root_path = Path('.')
+    result_logs = []
+    if select_zips:
+        # dir_list = [i for i in [*os.listdir(root_path)]]
+        dir_list = list(reversed(
+            sorted(filter(os.path.isfile,
+                          os.listdir(root_path)
+                          ),
+                   key=os.path.getmtime)))
+        i = 0
+        for path_index in range(len(dir_list)):
+            if i == log_count:
+                return result_logs
+            if dir_list[path_index].endswith('log.zip'):
+                result_logs.append(dir_list[path_index])
+                i += 1
+    else:
+        result_logs = open(root_path / 'SynCover.log')
+        return result_logs
