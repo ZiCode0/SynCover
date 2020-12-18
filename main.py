@@ -16,7 +16,7 @@ from lib import strings
 @logger.catch
 def main():
     awaiting_flag = True
-    logger_lib.init_logger(strings.__program_name__)
+    logger_lib.init_logger(strings.__project_name__)
     config = importlib.import_module('lib.config')
     logger.info(strings.Console.program_start)
     while True:
