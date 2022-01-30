@@ -3,17 +3,16 @@ import shutil
 
 from pathlib import Path
 
-from lib import config
 
-
-def list_data_folder_files(target_ext='.zip'):
+def list_data_folder_files(data_folder, target_ext='.zip'):
     """
     List all files with source extension from data folder
+    :param data_folder: target data folder
     :type target_ext: extension of target files
     :return: list of files in target data folder
     """
     res = []
-    for file in os.listdir(config.data_folder):
+    for file in os.listdir(data_folder):
         if file.endswith(target_ext):
             res.append(file)
     return res
@@ -37,7 +36,7 @@ def rm_last_sub_folder(target_folder, repeat=4):
 def move_from_sub_folder(target_folder):
     """
     Move files to directory above.
-    :type target_folder: target folder to move files in it
+    :type: target_folder: target folder to move files in it
     """
     sub_dir = return_sub_dir_path(target_folder)
     files = os.listdir(sub_dir)
@@ -51,7 +50,7 @@ def move_from_sub_folder(target_folder):
     rm_last_sub_folder(target_folder)
 
 
-def used_files_cleaner(target_folder):
+def used_files_cleaner(target_folder, result_ext):
     """
     Clean used files such as target zip and temp folder.
     """
@@ -59,7 +58,7 @@ def used_files_cleaner(target_folder):
     dir_list = os.listdir(target_folder_dest)
     for file in dir_list:
         if target_path_name in file:
-            if not file.endswith(config.result_ext):
+            if not file.endswith(result_ext):
                 try:
                     # remove temp dir
                     shutil.rmtree(os.path.join(target_folder_dest, file))
@@ -71,19 +70,20 @@ def used_files_cleaner(target_folder):
                     print(ex)
 
 
-def create_channel_folder(channel_name):
+def create_channel_folder(channel_name, data_folder):
     """
     Create channel folder in data source if not exist
+    :param data_folder: target data folder
     :param channel_name: target channel folder name
     :return:
     """
-    target_path = os.path.join(config.data_folder, channel_name)
+    target_path = os.path.join(data_folder, channel_name)
     # check channel folder name in data folder
     if not os.path.exists(target_path):
         os.makedirs(target_path)
 
 
-def move_channel_files(target_folder):
+def move_channel_files(target_folder, channels_list, result_ext):
     """
     Move files to channel folders. Detect target channel folder with file ending
     :return:
@@ -94,11 +94,11 @@ def move_channel_files(target_folder):
         # check if target is file
         if os.path.isfile(os.path.join(target_folder, path)):
             # parse channel list
-            for channel_codename in config.channels_list:
+            for channel_codename in channels_list:
                 # check ending
-                if path.endswith(channel_codename + config.result_ext):
+                if path.endswith(channel_codename + result_ext):
                     # create channel folder
-                    create_channel_folder(channel_codename)
+                    create_channel_folder(channel_codename, data_folder=target_folder)
                     # move to channel folder
                     shutil.move(os.path.join(target_folder, path),
                                 os.path.join(target_folder, channel_codename, path))

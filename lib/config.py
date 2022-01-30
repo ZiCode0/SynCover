@@ -1,39 +1,34 @@
-scan_data_folder_in_seconds = 10
-repeat_reading_zip_file_in_seconds = 5
-data_folder = 'data'
-result_ext = '.asc'
-station_line = {'skr': {'SKRI': lambda x: (x * 0.00000035 + 0.0001) / 0.07865,
-                        'SKRG_EF4_2': lambda x: (-717.82 * ((x * 0.00000035 + 0.0001) * 5) + 18.458) * 0.135,
-                        'SKRG_EF0001_2': lambda x: (1329.6 * ((x * 0.00000035 + 0.0001) * 5) - 47.295) * 0.141,
-                        'SKRP': lambda x: (x * 0.00000035 + 0.0001) * 3.7
-                        },
-                'kly': {'KLY_EF4-3': lambda x: ((2041 * (((0.000000345 * x) + 0.0001) * 11)) + 42.375) / 4
-                        },
-                'kbg': {'KBG_EF4': lambda x: ((-1392.5 * (((0.00000035 * x) + 0.0001) * 5)) - 73.671) / 10
-                        },
-                'pet': {'PET_EF4-4': lambda x: (386.63 * (((0.000000345 * x) + 0.0001) * 3)) + 54.902,
-                        'PET_EF1': lambda x: ((-6099.5 * (((0.000000345 * x) + 0.0001) * 1)) - 185.73) / 5
-                        }
-                }
-channels_list = [y for x in
-                 [[*station_line[i].keys()] for i in [*station_line.keys()]]
-                 for y in x]
+from json import dumps, load
 
 
-def get_station_line(line, station, channel):
-    """
-    Dynamic value changer for station record output
-    :param line: string input number
-    :param station: station name
-    :param channel: station channel
-    :return: formatted string
-    """
-    x = float(line[2].strip())
+class JsonConfig:
+    def __init__(self, file_path: str):
+        """
+        Json input arguments parser
+        :param file_path: input file path to input file
+        """
+        self.param = {}
+        self.param = {**self.param, **load(open(file_path, "r"))['config']}
 
-    return '{station_line}\n'.format(station_line=str(
-        eval(
-            str(
-                station_line[station][channel](x)
-            )
-        )
-    ))
+        self.stations = self.param['station_list']
+        self.channels_list = [y for x in
+                              [[*self.stations[i].keys()] for i in [*self.stations.keys()]]
+                              for y in x]
+        # print()
+
+    def print_config(self):
+        """
+        Print input arguments
+        """
+        out_dump = dumps(self.param,
+                         indent=4,
+                         sort_keys=True)
+        out_dump = out_dump.replace(',', '')
+        out_dump = out_dump.replace('{', '').replace('}', '')
+        out_dump = out_dump.replace('[', '').replace(']', '')
+        print(f'Config loaded:\n{out_dump}')
+
+
+if __name__ == '__main__':
+    conf = JsonConfig('./../config.json')
+    conf.print_config()
