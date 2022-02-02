@@ -40,23 +40,27 @@ def main():
                 target_folder = ar.unzip(file_path=os.path.join(config.param['data_folder'], file),
                                          repeat_in_seconds=config.param['repeat_reading_zip_file_in_seconds'])
                 files.move_from_sub_folder(target_folder)
-                converter.txt_folder_2_mseed(target_folder=target_folder,
-                                             target_station=station.define_station_by_pathname(
-                                                 target_pathname=target_folder,
-                                                 stations=config.stations),
-                                             stations_dict=config.stations,
-                                             sampling_rate=config.param['sampling_rate'],
-                                             max_normal_gap=config.param['max_normal_gap'],
-                                             logger=logger,
-                                             split_channels=bool(config.param['split_channels']),
-                                             trim_last_hour_values=bool(config.param['trim_last_hour_extra_values'])
-                                             )
-                files.used_files_cleaner(target_folder,
-                                         result_ext=config.param['result_ext'])
-                files.move_channel_files(target_folder=config.param['data_folder'],
-                                         channels_list=config.channels_list,
-                                         result_ext=config.param['result_ext'])
-                files.get_last_log_files()
+                parse_response = converter.txt_folder_2_mseed(target_folder=target_folder,
+                                                              target_station=station.define_station_by_pathname(
+                                                                  target_pathname=target_folder,
+                                                                  stations=config.stations),
+                                                              stations_opts_map=config.stations,
+                                                              sampling_rate=config.param['sampling_rate'],
+                                                              max_normal_gap=config.param['max_normal_gap'],
+                                                              logger=logger,
+                                                              split_channels=bool(config.param['split_channels']),
+                                                              trim_last_hour_values=bool(
+                                                                  config.param['trim_last_hour_extra_values'])
+                                                              )
+                if parse_response == 200:
+                    files.used_files_cleaner(target_folder,
+                                             result_ext=config.param['result_ext'])
+                    files.move_channel_files(target_folder=config.param['data_folder'],
+                                             channels_list=config.channels_list,
+                                             result_ext=config.param['result_ext'])
+                    files.get_last_log_files()
+                elif parse_response == 500:
+                    logger.warning(strings.Console().error_stop_parsing_folder.format(folder_name=target_folder))
             # timer to sleep
             time.sleep(config.param['scan_data_folder_in_seconds'])
         else:

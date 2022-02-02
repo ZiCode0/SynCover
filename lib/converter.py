@@ -3,13 +3,15 @@ import datetime
 import os
 import re
 import sys
-from datetime import datetime, timedelta
 
+import numpy as np
 import obspy
+
+from datetime import datetime, timedelta
+from io import StringIO, BytesIO
 
 from lib import export
 from lib import strings
-from lib import sample_count
 
 
 def sorted_list(path, folder):
@@ -136,17 +138,45 @@ def trim_extra_values_for_last_trace_hour(mseed, logger=None):
     return mseed
 
 
-def station_any(file_items: dict, path: str, target_station: str,
-                stations_dict: dict, sampling_rate: float,
-                max_normal_gap=0.0, logger=None, split_channels=False, trim_last_hour_values=False):
+def make_tspair_buffer_header(channel_name: str,
+                              sampling_rate: float,
+                              datetime_start_obj: datetime,
+                              data_type='INTEGER',
+                              data_quality='D'):
+    # Header example: TIMESERIES D0_KBG_20_PG1_D, 5 samples, 50 sps, 2021-05-21T00:00:05.0, TSPAIR, INTEGER, Counts
+    # channel name format example: NETWORK_STATION_PLACE_CHANNEL_QUALITY(DEFAULT=D)
+    #
+    # Data quality flags:
+    # > D — The state of quality control of the data is indeterminate.
+    #   R — Raw Waveform Data with no Quality Control
+    #   Q — Quality Controlled Data, some processes have been applied to the data.
+    #   M — Data center modified, time-series values have not been changed.
+    # >> dev mention: .split('.')[0]
+    # OBSPY UTCDATETIME FORMAT: '%Y%m%d%H%M%S'
+    datetime_start_str = datetime_start_obj.strftime(
+        '%Y%m%d%H%M%S.%f')  # '%Y-%M-%dT%H:%M:%S.%f'  # strings.datetime_format
+    return f'\n\nTIMESERIES {channel_name}_{data_quality}, 0 samples, {sampling_rate} sps, {datetime_start_str}, TSPAIR, {data_type}, Counts\n'
+
+
+def create_tspair_io_buffer_object(**headers_args):
+    sio = StringIO()
+    # sio += (make_tspair_buffer_header(**headers_args))  # for str
+    sio.writelines(make_tspair_buffer_header(**headers_args))
+    # sio.getvalue()  # enable for #debug
+    return sio
+
+
+def station_any(target_objects: dict,
+                out_path: str, station_opts_map: dict,
+                sampling_rate: float, max_normal_gap=0.0, logger=None,
+                split_channels=False, trim_last_hour_values=False):
     """
     Make mseed file using obspy
     :param trim_last_hour_values: trim last hour extra values because of non-normal samples delta
     :param split_channels: each result channel to mseed. Default: False
-    :param file_items: dictionary with list of channel target files to parse
-    :param path: target folder path
-    :param target_station: station
-    :param stations_dict: dictionary with station params
+    :param target_objects: dictionary with list of channel target files to parse
+    :param out_path: output result folder
+    :param station_opts_map: dictionary with station params
     :param sampling_rate: sampling rate of data
     :param max_normal_gap: normal gap between records to ignore split. Default: 0.0 - to skip
     :param logger: loguru logger object **optional. Default: None - to skip
@@ -156,64 +186,67 @@ def station_any(file_items: dict, path: str, target_station: str,
     samples_delta = 1 / sampling_rate
     # calc number of decimals in float
     delta_after_point_numbers = len(str(samples_delta).split('.')[1])
-    # make channels buffer
-    channels = {i: []
-                for i in stations_dict[target_station]}
-    channel_number_aliases = [i for i in channels]
+    # buffers for parsable datetime objects
+    l_datetime_now = {}
+    l_datetime_prev = {}
 
-    start_file_date = None
-    # datetime buffers
-    datetime_last = {}
-    datetime_now = {}
-    # flag for first init
-    first_parse = {i: True for i in channels}  # [True] * len(channels)
-    # full channel name buffer
-    channel_folder_name = ''
-    datetime_line_now = {}
-    datetime_line_last = {}
-
-    calc_gaps = {i: [] for i in channels}
-
-    # parse all files for each channel
-    for channel_folder_name, parts in iter(file_items.items()):
-        # start file date with zero time
-        if not start_file_date:
-            start_file_date = make_start_datetime(date_string=channel_folder_name)
+    for s_name, s_parts in iter(target_objects.items()):
+        # make channels buffer
+        s_channels = {i: None for i in station_opts_map[s_name]}
+        # init station channel names
+        s_channel_number_aliases = [i for i in s_channels]
+        # flag for first init
+        s_channel_first_parse = {i: True for i in s_channels}  # [True] * len(channels)
+        # use folder name to get date
+        _folder_name_for_start_date = return_target_folder_name_from_path(s_parts[0])
+        # make start datetime object
+        s_datetime_start = make_start_datetime(date_string=_folder_name_for_start_date)
+        # make start datetime object as str ( for speed-up :D )
+        s_datetime_start_data_str = s_datetime_start.strftime(strings.date_start_format)
 
         # for every file
-        for file_part in parts:
-            print(file_part)  # enable for #debug
-            with open(os.path.join(path, channel_folder_name, file_part), 'r') as file:
+        for part_path in s_parts:
+            # print current part path
+            # if logger:
+            #     logger.info(f'Parsing part file: {part_path}..')  # enable for #debug to print current part
+            # open part file
+            with open(part_path, 'r') as _f:
                 # get all raw data lines
-                data_from_file = file.readlines()
+                data_from_file = _f.readlines()
                 # parse all lines
                 for line_index in range(len(data_from_file)):
-                    # split line
-                    line = data_from_file[line_index].split(' ')
-                    channel_index = int(line[1]) - 1
+                    # split line on defined var parts
+                    l_datetime_text, l_channel_index, l_value_text = data_from_file[line_index].split(' ')
+                    # channel idx correction
+                    l_channel_index = int(l_channel_index) - 1
                     # get name by station
                     # check if channel with target index exist
                     try:
-                        channel_full_name = channel_number_aliases[channel_index]
+                        l_channel_full_name = s_channel_number_aliases[l_channel_index]
                     except IndexError:
                         continue
+                    # print(l_datetime_text, l_channel_full_name, l_value_text)  # enable for #debug
                     # get now datetime by current sample string line
-                    datetime_line_now[channel_full_name] = make_datetime(date=start_file_date, time_str=line[0])
+                    l_datetime_now[l_channel_full_name] = make_datetime(date=s_datetime_start,
+                                                                        time_str=l_datetime_text)
+
                     # add first hour:min:sec:ms to start time
-                    if first_parse[channel_full_name]:
-                        # init first channel record part object
-                        channels[channel_full_name] = [
-                            {'data': [],
-                             'start_time': start_file_date,
-                             # make_datetime(date=start_file_date, time_str='00:00:00.0'),
-                             'end_time': None}]
+                    if s_channel_first_parse[l_channel_full_name]:
                         # mark for passed first run
-                        first_parse[channel_full_name] = False
+                        s_channel_first_parse[l_channel_full_name] = False
+                        # init channel buffer
+                        s_channels[l_channel_full_name] = create_tspair_io_buffer_object(
+                            channel_name=l_channel_full_name,
+                            sampling_rate=sampling_rate,
+                            datetime_start_obj=
+                            l_datetime_now[
+                                l_channel_full_name]
+                        )
                         # init line last datetime
-                        datetime_line_last[channel_full_name] = datetime_line_now[channel_full_name]
+                        l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
                     # calc current delta
                     # round by calculated numbers after point
-                    current_delta = round((datetime_line_now[channel_full_name] - datetime_line_last[channel_full_name])
+                    current_delta = round((l_datetime_now[l_channel_full_name] - l_datetime_prev[l_channel_full_name])
                                           .total_seconds(),
                                           delta_after_point_numbers)
                     # check if datetime jumped back and
@@ -221,141 +254,81 @@ def station_any(file_items: dict, path: str, target_station: str,
                         # lag in seconds
                         sec_lag = round(current_delta / sampling_rate, 6)
                         # print warning
-                        logger.warning(strings.Console.warning_back_time_lag.format(channel=channel_full_name,
+                        logger.warning(strings.Console.warning_back_time_lag.format(channel=l_channel_full_name,
+                                                                                    file_part=part_path,
                                                                                     sec_lag=sec_lag,
-                                                                                    channel_folder_name=channel_folder_name,
-                                                                                    file_part=file_part,
                                                                                     line_index=line_index))
-
-                        # number of samples for each channel to check
-                        sample_count_check = 5
-                        # buffer of datetime objects for channels
-                        _dt_to_check = {i: [] for i in channels}
-                        # parse to add buffer channel values
-                        for i in range(sample_count_check * len(channels)):
-                            try:
-                                # get temp string
-                                _dt_str, _ch_index, _ = data_from_file[line_index + i].split(' ')
-                                # make datetime
-                                _dt = make_datetime(start_file_date, _dt_str)
-                                # add to buffer according to channel
-                                _dt_to_check[channel_number_aliases[int(_ch_index) - 1]].append(_dt)
-                            except:
-                                # skip on errors
-                                pass
-                        del _dt_str, _ch_index, _dt, _, i
-                        if not check_datetime(datetime_str_list=_dt_to_check,
-                                              max_normal_gap=max_normal_gap):
-                            # if problems with gaps in some samples delta
-                            if logger:
-                                # print warning
-                                logger.error(strings.Console.error_back_time_lag)
-                                # try to exit
-                                quit(0)
-                                sys.exit()
-                        del _dt_to_check
+                        # RETURN FAIL STATUS
+                        return 500
 
                     try:
-                        # channel number as int
-                        target_number = int(line[2])
-                        # get exact value by expression
-                        # disable for #debug
-                        # e_value = evaluate_channel_value(value=target_number,
-                        #                                  station=target_station,
-                        #                                  channel=channel_full_name,
-                        #                                  stations_dict=stations_dict)
-                        e_value = target_number  # toggle for #debug
-
-                        # #debug to check gap size
-                        # if current_delta <= samples_delta:
-                        #     seconds_delta = (datetime_line_now[channel_full_name] - datetime_line_last[channel_full_name]).total_seconds()
-                        #     delta_gap = samples_delta - seconds_delta
-                        #     # print(f'{channel_full_name:20s} {line_index:10.0f} {seconds_delta:.7f} {delta_gap:2.7f}')
-                        #     calc_gaps[channel_full_name].append(delta_gap)
-
                         # check to find gaps
+                        # # if delta is normal
                         if (current_delta <= samples_delta) or (current_delta < max_normal_gap):
-                            # if delta is normal
+                            # prepare datetime record str
+                            # dt_cur = make_datetime(date=s_datetime_start, time_str=l_datetime_text)
+                            # dt_cur_str = dt_cur.strftime(strings.datetime_format)
+                            dt_cur_str = (s_datetime_start_data_str + l_datetime_text).replace(':',
+                                                                                               '')  # .replace('.', '')
+                            _str = f'{dt_cur_str} {l_value_text}'
                             # add to temp station buffer
-                            channels[channel_full_name][-1]['data'].append(e_value)
-                        # split trace because of gap found
+                            # s_channels[l_channel_full_name] += _str  # for str
+                            s_channels[l_channel_full_name].writelines(_str)  # for stringio
+
+                            # print(s_channels[l_channel_full_name].getvalue())
+                        # # split trace because of gap found
                         else:
-                            _record_time_gap_before = sample_count.calc_dt(records_list=channels[channel_full_name],
-                                                                           start_file_datetime=start_file_date,
-                                                                           samples_delta=samples_delta)
-                            _record_time_gap_after = _record_time_gap_before + timedelta(seconds=current_delta + samples_delta)
-
-                            # _trace_buffer_size = len(channels[channel_full_name][-1]['data'])
-
-                            # _gap_in_samples = current_delta * sampling_rate
-                            # _delta_from_start_in_dt_end = start_file_date + timedelta(
-                            #     seconds=samples_delta * _total_trace_size)
-                            # _delta_from_start_in_dt_start = start_file_date + timedelta(
-                            #     seconds=samples_delta * (_total_trace_size + _gap_in_samples))  # + samples_delta)
-                            #
-
                             # log warning output about gap
                             if logger:
-                                logger.warning(strings.Console.warning_gap_found.format(channel=channel_full_name,
-                                                                                        folder=channel_folder_name,
-                                                                                        file=file_part,
+                                logger.warning(strings.Console.warning_gap_found.format(channel=l_channel_full_name,
+                                                                                        file_part=part_path,
                                                                                         gap_value=current_delta,
-                                                                                        gap_time=line[0],
+                                                                                        gap_time=l_datetime_text,
                                                                                         line_number=line_index))
+                            # add next part header to buffer
+                            _str = make_tspair_buffer_header(
+                                channel_name=l_channel_full_name,
+                                sampling_rate=sampling_rate,
+                                datetime_start_obj=l_datetime_now[l_channel_full_name])
+                            # s_channels[l_channel_full_name] += _str  # for str
+                            s_channels[l_channel_full_name].writelines(_str)  # for StringIO
                             # print()  # enable for #debug
-                            # if delta is not normal => gap => devide Trace
-                            # set last datetime as endtime
-                            channels[channel_full_name][-1][
-                                'end_time'] = _record_time_gap_before  # datetime_last[channel_full_name]
-                            # create new trace buffer
-                            channels[channel_full_name].append(
-                                {'data': [e_value, ], 'start_time': _record_time_gap_after, 'end_time': None})
-                            # free memory
-                            del _record_time_gap_after, _record_time_gap_before
-                            # del _total_trace_size, _gap_in_samples, _delta_from_start_in_dt_end, _delta_from_start_in_dt_start
+
                     # ignore bad values
                     except Exception as ex:
                         if logger:
                             logger.warning(
-                                strings.Console.warning_error_read_data.format(value=data_from_file[line_index].split('\n')[0],
-                                                                               line_number=line_index,
-                                                                               ex=ex
-                                                                               ))
-                    # set last datetime
-                    # datetime_last[channel_full_name] = datetime_now[channel_full_name]
-                    # set last channel datetime object
-                    # channels[channel_full_name][-1]['end_time'] = datetime_last[channel_full_name]
+                                strings.Console.warning_error_read_data.format(
+                                    value=data_from_file[line_index].split('\n')[0],
+                                    line_number=line_index,
+                                    ex=ex
+                                ))
 
                     # set last line datetime
-                    datetime_line_last[channel_full_name] = datetime_line_now[channel_full_name]
+                    l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
 
-                # remove file buffer
-                del data_from_file
-
-    # channels = trim_to_normal_max_day_size(channels_data_dict=channels, sampling_rate=sampling_rate)
-    mseed = export.make_stream_mseed(channels_data_dict=channels, sampling_rate=sampling_rate)
-    del channels
-    if trim_last_hour_values:
-        mseed = trim_extra_values_for_last_trace_hour(mseed, logger=logger)
-
-    # del channels, datetime_last, datetime_now # disable for #debug
-
-    # print result traces
-    if logger:
-        logger.success(strings.Console.result_stream.format(stream_text=mseed))
-
-    # check split channels required
-    if split_channels:
-        # write each channel in separate mseed
-        for trace in mseed:
-            out_path = os.path.join(path, f'{channel_folder_name}_{trace.stats.channel}.mseed')
-            trace.write(filename=out_path)
-    else:
-        # write each channel data in one mseed file
-        out_path = os.path.join(path, f'{channel_folder_name}.mseed')
-        mseed.write(filename=out_path)
-    del mseed
-    # print()  # enable for #debug
+        # prepare and export stream channel objects
+        for _key, value in s_channels.items():
+            if value:
+                # get raw stream object
+                _channel_stream = obspy.read(BytesIO(value.getvalue().encode()), format="TSPAIR",
+                                             dtype=np.dtype(np.int16))
+                # fill missed channel stream object params
+                for _trace_part in _channel_stream:
+                    _trace_part.stats.npts = _trace_part.data.size
+                    _trace_part.meta.npts = _trace_part.data.size
+                # export/write result files
+                _out_path_f_name = f'{_folder_name_for_start_date}_{_channel_stream.traces[0].id}.mseed'
+                _out_path_file = os.path.join(out_path, _out_path_f_name)
+                # write to mseed format
+                _channel_stream.write(_out_path_file, format="MSEED")
+                # print result traces
+                if logger:
+                    logger.success(strings.Console.success_channel_report.format(stream_object=_channel_stream,
+                                                                                 file_path=_out_path_file))
+                # print()  # enable for #debug
+    # return OK status
+    return 200
 
 
 def create_convert_object(target_folder):
@@ -371,7 +344,26 @@ def create_convert_object(target_folder):
     return result_dict
 
 
-def txt_folder_2_mseed(target_folder, target_station, stations_dict, sampling_rate,
+def create_target_objects_dict(target_station: str, target_folder: str):
+    """
+    Create object to convertible format.
+    :param: target_folder: target folder to convert
+    :return: object as dictionary
+    """
+    result_list = os.listdir(target_folder)
+    result_list.sort()
+    target_folder_name_for_date = os.path.split(target_folder)[-1]
+    result_dict = {target_station: [os.path.join(target_folder, i) for i in result_list]}
+    return result_dict
+
+
+def return_target_folder_name_from_path(path):
+    # Get 'KBG_2021-05-21' from 'data/KBG_2021-05-21/00.txt'
+    head = os.path.split(path)[-2]
+    return os.path.split(head)[-1]
+
+
+def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, sampling_rate,
                        max_normal_gap=0.03, logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Convert txt files of target folder to asc format
@@ -381,25 +373,27 @@ def txt_folder_2_mseed(target_folder, target_station, stations_dict, sampling_ra
     :param max_normal_gap:
     :param sampling_rate:
     :param target_station: select target station
-    :param stations_dict: dictionary of input channels information
+    :param stations_opts_map: dictionary of input channels information
     :param target_folder: target folder to convert
     """
-    destination_folder, folder_name = os.path.split(target_folder)
-    target_folder = destination_folder
-    target_dict = create_convert_object(os.path.join(destination_folder, folder_name))
+    output_folder, _ = os.path.split(target_folder)
+    target_objects = create_target_objects_dict(target_station=target_station,
+                                                target_folder=target_folder)
     """
     :param item: dictionary like an example:
-    {'KLY_2020-09-01' = ['00.txt', '01.txt', '02.txt', '03.txt'],
-     'KLY_2020-09-02' = ['00.txt', '01.txt', '02.txt', '03.txt']}
+    {'kbg': ['data/KBG_2021-05-21/00.txt',
+             'data/KBG_2021-05-21/01.txt',
+             'data/KBG_2021-05-21/02.txt',
+             'data/KBG_2021-05-21/03.txt']}
     where:
-        key: target folder
-        values: files of target folder
-    :param path: data folder path to store result
+        key: target station
+        values: target part paths
     """
-
-    station_any(file_items=target_dict, path=target_folder, target_station=target_station,
-                stations_dict=stations_dict, sampling_rate=sampling_rate, max_normal_gap=max_normal_gap,
-                logger=logger, split_channels=split_channels, trim_last_hour_values=trim_last_hour_values)
+    response = station_any(target_objects=target_objects,
+                           out_path=output_folder, station_opts_map=stations_opts_map,
+                           sampling_rate=sampling_rate, max_normal_gap=max_normal_gap,
+                           logger=logger, split_channels=split_channels, trim_last_hour_values=trim_last_hour_values)
+    return response
 
 
 if __name__ == '__main__':
@@ -432,7 +426,7 @@ if __name__ == '__main__':
 
     txt_folder_2_mseed(target_folder=arg_path,
                        target_station=args.station_name,
-                       stations_dict=args.config.stations,
+                       stations_opts_map=args.config.stations,
                        sampling_rate=args.config.param['sampling_rate'],
                        max_normal_gap=args.config.param['max_normal_gap'],
                        logger=None,
