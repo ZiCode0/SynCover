@@ -16,8 +16,9 @@ class Console:
     warning_back_time_lag = 'Channel <{channel}>: "back-in-time" {sec_lag} sec. lag detected in file: {file_part}, line: {line_index}.'
     warning_dropped_samples = 'Channel <{channel}>: {samples_time} sec ({samples_number} samples) dropped from the end of trace.'
     warning_gap_found = 'Channel <{channel}>: "{gap_value}" sec. gap found, file: {file_part}, time: {gap_time}, line: {line_number}'
+    warning_extra_last_seconds_found = 'Last hour extra values({extra_sec}sec) more than normal {normal_sec}sec, skip trimming.'
 
-    error_stop_parsing_folder = 'Stop parsing {folder_name} folder'
+    error_stop_parsing_folder = 'Stop parsing <{folder_name}> folder..'
     error_back_time_lag = 'Problems with values delta after "back-in-time" lag, exit..'
 
 

@@ -2,7 +2,6 @@ import argparse
 import datetime
 import os
 import re
-import sys
 
 import numpy as np
 import obspy
@@ -10,7 +9,6 @@ import obspy
 from datetime import datetime, timedelta
 from io import StringIO, BytesIO
 
-from lib import export
 from lib import strings
 
 
@@ -68,18 +66,6 @@ def make_start_datetime(date_string: str):
     return dt_date
 
 
-def asc_file_constructor(path, key, head, station, channel, head_key, collector, result_ext):
-    file_wr = open(os.path.join(path,
-                                key + '_{channel}'.format(channel=channel) + result_ext), 'a')
-    file_wr.write('\n{head} {station} {head_key} {size}\n'.format(head=head,
-                                                                  station=station,
-                                                                  channel=channel,
-                                                                  head_key=head_key,
-                                                                  size=len(collector)))
-    file_wr.writelines(collector)
-    file_wr.close()
-
-
 def make_datetime(date: datetime, time_str: str):
     """
     Combine base date `datetime` object with time as `string`
@@ -106,36 +92,70 @@ def check_datetime(datetime_str_list, max_normal_gap):
     return True
 
 
-def trim_extra_values_for_last_trace_hour(mseed, logger=None):
+# def trim_extra_values_for_last_trace_hour(mseed, logger=None):
+#     """
+#     Trim extra values in last hour because of "back-in-time" lags and non-normal delta of sample in raw records
+#     :param logger: print log information about trimmed length
+#     :param mseed: target mseed file with trace records
+#     :return: trimmed stream
+#     """
+#     for trace in mseed:
+#         # check if less than 1 hour data and starts from zero 00:00:00.0 datetime
+#         hours_more_or_equal_1 = ((trace.stats.endtime - trace.stats.starttime) / (60 * 60)) > 1
+#         zero_start = str(trace.stats.starttime.time) == '00:00:00'
+#         # parse trace if length is more than
+#         if zero_start and hours_more_or_equal_1:
+#             end_time = trace.stats.endtime
+#             # make endtime to format "YEAR-MONTH-DAY_00:00:00.0 - delta"
+#             trim_utc_datetime = obspy.UTCDateTime(end_time.year, end_time.month, end_time.day,
+#                                                   end_time.hour, 0, 0, 0) - timedelta(seconds=trace.stats.delta)
+#             # get time delta size to trim
+#             time_delta = end_time - trim_utc_datetime
+#             samples_number = str(int(time_delta * 50))
+#             # trim with new endtime marker
+#             trace.trim(starttime=trace.stats.starttime,
+#                        endtime=trim_utc_datetime)
+#             if logger:
+#                 logger.warning(strings.Console.warning_dropped_samples.format(channel=trace.id,
+#                                                                               samples_time=str(time_delta),
+#                                                                               samples_number=samples_number
+#                                                                               ))
+#         # print()  # enable for #debug
+#     return mseed
+
+
+def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_max=60, logger=None):
     """
-    Trim extra values in last hour because of "back-in-time" lags and non-normal delta of sample in raw records
-    :param logger: print log information about trimmed length
-    :param mseed: target mseed file with trace records
-    :return: trimmed stream
+        Trim extra values in last hour because of non-normal delta of sample in raw records
+        Trim on extra values:  < 1min
+        Get warning and skip:  > 1min
+        :param trace: target trace record
+        :param extra_values_sec_max: max limit seconds to trim. else => warning and skip
+        :param logger: print log information about trimmed length
+        :return: trimmed stream
     """
-    for trace in mseed:
-        # check if less than 1 hour data and starts from zero 00:00:00.0 datetime
-        hours_more_or_equal_1 = ((trace.stats.endtime - trace.stats.starttime) / (60 * 60)) > 1
-        zero_start = str(trace.stats.starttime.time) == '00:00:00'
-        # parse trace if length is more than
-        if zero_start and hours_more_or_equal_1:
-            end_time = trace.stats.endtime
-            # make endtime to format "YEAR-MONTH-DAY_00:00:00.0 - delta"
-            trim_utc_datetime = obspy.UTCDateTime(end_time.year, end_time.month, end_time.day,
-                                                  end_time.hour, 0, 0, 0) - timedelta(seconds=trace.stats.delta)
-            # get time delta size to trim
-            time_delta = end_time - trim_utc_datetime
-            samples_number = str(int(time_delta * 50))
-            # trim with new endtime marker
-            trace.trim(starttime=trace.stats.starttime,
-                       endtime=trim_utc_datetime)
+    print()
+    # check if less than 1 hour data and starts from zero 00:00:00.0 datetime
+    _hours_more_or_equal_1 = ((trace.stats.endtime - trace.stats.starttime) / (60 * 60)) > 1
+    if _hours_more_or_equal_1:
+        _end_time = trace.stats.endtime
+        _end_time_last_hour_start = obspy.UTCDateTime(_end_time.year, _end_time.month, _end_time.day, _end_time.hour,
+                                                      0, 0, 0)
+        # make endtime to format "YEAR-MONTH-DAY_00:00:00.0 - delta"
+        last_hour_time = _end_time - _end_time_last_hour_start
+        # make warning because of long extra values in last trace hour
+        if last_hour_time > extra_values_sec_max:
             if logger:
-                logger.warning(strings.Console.warning_dropped_samples.format(channel=trace.id,
-                                                                              samples_time=str(time_delta),
-                                                                              samples_number=samples_number
-                                                                              ))
-        # print()  # enable for #debug
-    return mseed
+                logger.warning(strings.Console().warning_extra_last_seconds_found.format(extra_sec=last_hour_time,
+                                                                                         normal_sec=extra_values_sec_max))
+            else:
+                print()
+        # if normal extra values tail => trim trace
+        else:
+            # trim trace data
+            trace.trim(trace.stats.starttime, _end_time_last_hour_start)
+
+    return trace
 
 
 def make_tspair_buffer_header(channel_name: str,
@@ -307,26 +327,51 @@ def station_any(target_objects: dict,
                     # set last line datetime
                     l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
 
+        # make export buffer
+        export_targets = []
+        # if split_channels disabled => using common single obspy.Stream() temp buffer
+        if not split_channels:
+            export_targets.append(obspy.Stream())
+
         # prepare and export stream channel objects
         for _key, value in s_channels.items():
+            # if channel buffer exist
             if value:
                 # get raw stream object
-                _channel_stream = obspy.read(BytesIO(value.getvalue().encode()), format="TSPAIR",
+                _channel_stream = obspy.read(BytesIO(value.getvalue().encode()),
+                                             format="TSPAIR",
                                              dtype=np.dtype(np.int16))
                 # fill missed channel stream object params
                 for _trace_part in _channel_stream:
                     _trace_part.stats.npts = _trace_part.data.size
                     _trace_part.meta.npts = _trace_part.data.size
-                # export/write result files
-                _out_path_f_name = f'{_folder_name_for_start_date}_{_channel_stream.traces[0].id}.mseed'
-                _out_path_file = os.path.join(out_path, _out_path_f_name)
-                # write to mseed format
-                _channel_stream.write(_out_path_file, format="MSEED")
-                # print result traces
-                if logger:
-                    logger.success(strings.Console.success_channel_report.format(stream_object=_channel_stream,
-                                                                                 file_path=_out_path_file))
-                # print()  # enable for #debug
+
+                # trim last channel part if trim_last_hour_values selected
+                if trim_last_hour_values:
+                    _channel_stream[-1] = trim_extra_values_for_last_trace_hour(trace=_channel_stream[-1],
+                                                                                logger=logger)
+
+                # add separate channels stream
+                if split_channels:
+                    export_targets.append(_channel_stream)
+                # add channel to common single stream
+                else:
+                    export_targets[0] += _channel_stream
+        del s_channels
+
+        # export targets
+        for target in export_targets:
+            # export/write result files
+            _out_path_f_name = f'{_folder_name_for_start_date}_{target.traces[0].id}.mseed'
+            _out_path_file = os.path.join(out_path, _out_path_f_name)
+            # write to mseed format
+            target.write(_out_path_file, format="MSEED")
+            # print result traces
+            if logger:
+                logger.success(strings.Console.success_channel_report.format(stream_object=target,
+                                                                             file_path=_out_path_file))
+            # print()  # enable for #debug
+
     # return OK status
     return 200
 

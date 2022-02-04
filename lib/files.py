@@ -4,6 +4,26 @@ import shutil
 from pathlib import Path
 
 
+def init_work_dir(data_folder):
+    """
+    Make working directory if not exist
+    target default folders:
+    - data
+    - data/excluded
+    :return: code status 200/500
+    """
+    (Path(data_folder) / "exclude").mkdir(parents=True, exist_ok=True)
+    return 200
+
+
+def move_source_to_exclude_folder(target_source_path, data_folder):
+    """
+    Move source file to exclude directory
+    """
+    shutil.move(target_source_path, Path(data_folder) / 'exclude')
+    return 200
+
+
 def list_data_folder_files(data_folder, target_ext='.zip'):
     """
     List all files with source extension from data folder

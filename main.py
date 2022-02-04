@@ -18,6 +18,7 @@ def main():
     awaiting_flag = True
     logger_lib.init_logger(strings.__project_name__)
     config = JsonConfig(file_path='config.json')  # importlib.import_module('lib.config')
+    files.init_work_dir(data_folder=config.param['data_folder'])
     logger.info(strings.Console.program_start)
     while True:
         data_files = files.list_data_folder_files(data_folder=config.param['data_folder'])
@@ -37,7 +38,8 @@ def main():
                                                                              pattern.filename_format_example))
                     # skip file
                     continue
-                target_folder = ar.unzip(file_path=os.path.join(config.param['data_folder'], file),
+                target_zip_file = os.path.join(config.param['data_folder'], file)
+                target_folder = ar.unzip(file_path=target_zip_file,
                                          repeat_in_seconds=config.param['repeat_reading_zip_file_in_seconds'])
                 files.move_from_sub_folder(target_folder)
                 parse_response = converter.txt_folder_2_mseed(target_folder=target_folder,
@@ -52,15 +54,19 @@ def main():
                                                               trim_last_hour_values=bool(
                                                                   config.param['trim_last_hour_extra_values'])
                                                               )
-                if parse_response == 200:
-                    files.used_files_cleaner(target_folder,
-                                             result_ext=config.param['result_ext'])
-                    files.move_channel_files(target_folder=config.param['data_folder'],
-                                             channels_list=config.channels_list,
-                                             result_ext=config.param['result_ext'])
-                    files.get_last_log_files()
-                elif parse_response == 500:
+                # if exception/error code status => move to exclude folder
+                if parse_response == 500:
                     logger.warning(strings.Console().error_stop_parsing_folder.format(folder_name=target_folder))
+                    files.move_source_to_exclude_folder(target_source_path=target_zip_file,
+                                                        data_folder=config.param['data_folder'])
+
+                # clean files
+                files.used_files_cleaner(target_folder,
+                                         result_ext=config.param['result_ext'])
+                files.move_channel_files(target_folder=config.param['data_folder'],
+                                         channels_list=config.channels_list,
+                                         result_ext=config.param['result_ext'])
+                files.get_last_log_files()
             # timer to sleep
             time.sleep(config.param['scan_data_folder_in_seconds'])
         else:
