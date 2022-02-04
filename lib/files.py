@@ -20,7 +20,12 @@ def move_source_to_exclude_folder(target_source_path, data_folder):
     """
     Move source file to exclude directory
     """
-    shutil.move(target_source_path, Path(data_folder) / 'exclude')
+    try:
+        shutil.move(target_source_path, Path(data_folder) / 'exclude')
+    # remove source file if exist
+    except shutil.Error:
+        os.remove(target_source_path)
+    # return OK status code
     return 200
 
 

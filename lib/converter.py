@@ -134,10 +134,10 @@ def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_m
         :param logger: print log information about trimmed length
         :return: trimmed stream
     """
-    print()
     # check if less than 1 hour data and starts from zero 00:00:00.0 datetime
     _hours_more_or_equal_1 = ((trace.stats.endtime - trace.stats.starttime) / (60 * 60)) > 1
     if _hours_more_or_equal_1:
+        # vars to calc extra last hour tail
         _end_time = trace.stats.endtime
         _end_time_last_hour_start = obspy.UTCDateTime(_end_time.year, _end_time.month, _end_time.day, _end_time.hour,
                                                       0, 0, 0)
@@ -149,7 +149,8 @@ def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_m
                 logger.warning(strings.Console().warning_extra_last_seconds_found.format(extra_sec=last_hour_time,
                                                                                          normal_sec=extra_values_sec_max))
             else:
-                print()
+                print(strings.Console().warning_extra_last_seconds_found.format(extra_sec=last_hour_time,
+                                                                                normal_sec=extra_values_sec_max))
         # if normal extra values tail => trim trace
         else:
             # trim trace data
