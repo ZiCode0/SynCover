@@ -411,7 +411,7 @@ def return_target_folder_name_from_path(path):
 
 
 def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, sampling_rate,
-                       max_normal_gap=0.03, logger=None, split_channels=False, trim_last_hour_values=False):
+                       max_normal_gap=0.03, export_ext='.mseed', logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Convert txt files of target folder to asc format
     :param trim_last_hour_values:
@@ -419,6 +419,7 @@ def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, samplin
     :param logger:
     :param max_normal_gap:
     :param sampling_rate:
+    :param export_ext: export extension postfix in result file name
     :param target_station: select target station
     :param stations_opts_map: dictionary of input channels information
     :param target_folder: target folder to convert
@@ -438,7 +439,7 @@ def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, samplin
     """
     response = station_any(target_objects=target_objects,
                            out_path=output_folder, station_opts_map=stations_opts_map,
-                           sampling_rate=sampling_rate, max_normal_gap=max_normal_gap,
+                           sampling_rate=sampling_rate, max_normal_gap=max_normal_gap, export_ext=export_ext,
                            logger=logger, split_channels=split_channels, trim_last_hour_values=trim_last_hour_values)
     return response
 
