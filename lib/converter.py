@@ -130,7 +130,7 @@ def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_m
 def make_tspair_buffer_header(channel_name: str,
                               sampling_rate: float,
                               datetime_start_obj: datetime,
-                              data_type='INTEGER',
+                              data_type='FLOAT',
                               data_quality='D'):
     # Header example: TIMESERIES D0_KBG_20_PG1_D, 5 samples, 50 sps, 2021-05-21T00:00:05.0, TSPAIR, INTEGER, Counts
     # channel name format example: NETWORK_STATION_PLACE_CHANNEL_QUALITY(DEFAULT=D)
@@ -253,11 +253,13 @@ def station_any(target_objects: dict,
                         # check to find gaps
                         # # if delta is normal
                         if (current_delta <= samples_delta) or (current_delta < max_normal_gap):
-                            # prepare datetime record str
-                            # dt_cur = make_datetime(date=s_datetime_start, time_str=l_datetime_text)
-                            # dt_cur_str = dt_cur.strftime(strings.datetime_format)
-                            # dt_cur_str = (s_datetime_start_data_str + l_datetime_text).replace(':', '')
-                            _str = f'{l_value_text}'
+                            # calculate value
+                            _e_value = evaluate_channel_value(value=int(l_value_text),
+                                                              station=s_name,
+                                                              channel=l_channel_full_name,
+                                                              stations_dict=station_opts_map)
+                            # prepare for str buffer export
+                            _str = f'{_e_value}\n'
                             # add to temp station buffer
                             # s_channels[l_channel_full_name] += _str  # for str
                             s_channels[l_channel_full_name].writelines(_str)  # for stringio
@@ -315,7 +317,7 @@ def station_any(target_objects: dict,
                 # get raw stream object
                 _channel_stream = obspy.read(BytesIO(value.getvalue().encode()),
                                              format="TSPAIR",
-                                             dtype=np.dtype(np.int16))
+                                             dtype=np.dtype(np.float32))
                 # fill missed channel stream object params
                 for _trace_part in _channel_stream:
                     _trace_part.stats.npts = _trace_part.data.size
