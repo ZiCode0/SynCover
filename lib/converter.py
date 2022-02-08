@@ -194,14 +194,15 @@ def station_any(target_objects: dict,
                 logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Make mseed file using obspy
-    :param trim_last_hour_values: trim last hour extra values because of non-normal samples delta
-    :param split_channels: each result channel to mseed. Default: False
     :param target_objects: dictionary with list of channel target files to parse
     :param out_path: output result folder
     :param station_opts_map: dictionary with station params
     :param sampling_rate: sampling rate of data
     :param max_normal_gap: normal gap between records to ignore split. Default: 0.0 - to skip
+    :param export_ext: result export extension postfix in file name. Format ex: .mseed
     :param logger: loguru logger object **optional. Default: None - to skip
+    :param split_channels: each result channel to mseed. Default: False
+    :param trim_last_hour_values: trim last hour extra values because of non-normal samples delta
     :return:
     """
     # normal delta according sampling rate
@@ -422,15 +423,15 @@ def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, samplin
                        max_normal_gap=0.03, export_ext='.mseed', logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Convert txt files of target folder to asc format
-    :param trim_last_hour_values:
-    :param split_channels:
-    :param logger:
-    :param max_normal_gap:
-    :param sampling_rate:
-    :param export_ext: export extension postfix in result file name
+    :param target_folder: target folder to convert
     :param target_station: select target station
     :param stations_opts_map: dictionary of input channels information
-    :param target_folder: target folder to convert
+    :param sampling_rate: target file sampling rate
+    :param max_normal_gap: max available normal gap value
+    :param export_ext: export extension postfix in result file name. Default: .mseed
+    :param logger: logger/loguru instance
+    :param split_channels: bool flag: split channels result during file export. Default: False
+    :param trim_last_hour_values: bool flag: trim last hour values to make normal trace length. Default: False
     """
     output_folder, _ = os.path.split(target_folder)
     target_objects = create_target_objects_dict(target_station=target_station,
