@@ -49,6 +49,7 @@ def main():
                                                               stations_opts_map=config.stations,
                                                               sampling_rate=config.param['sampling_rate'],
                                                               max_normal_gap=config.param['max_normal_gap'],
+                                                              export_ext=config.param['result_ext'],
                                                               logger=logger,
                                                               split_channels=bool(config.param['split_channels']),
                                                               trim_last_hour_values=bool(

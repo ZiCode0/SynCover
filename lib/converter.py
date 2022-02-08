@@ -189,8 +189,8 @@ def create_tspair_io_buffer_object(**headers_args):
 
 def station_any(target_objects: dict,
                 out_path: str, station_opts_map: dict,
-                sampling_rate: float, max_normal_gap=0.0, logger=None,
-                split_channels=False, trim_last_hour_values=False):
+                sampling_rate: float, max_normal_gap=0.0, export_ext='.mseed',
+                logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Make mseed file using obspy
     :param trim_last_hour_values: trim last hour extra values because of non-normal samples delta
@@ -363,10 +363,11 @@ def station_any(target_objects: dict,
         # export targets
         for target in export_targets:
             # export/write result files
-            _out_path_f_name = f'{_folder_name_for_start_date}_{target.traces[0].id}.mseed'
+            _out_path_f_name = f'{_folder_name_for_start_date}_{target.traces[0].id}{export_ext}'
             _out_path_file = os.path.join(out_path, _out_path_f_name)
             # write to mseed format
-            target.write(_out_path_file, format="MSEED")
+            # # define file export format by extension postfix
+            target.write(_out_path_file)  # , format="MSEED"
             # print result traces
             if logger:
                 logger.success(strings.Console.success_channel_report.format(stream_object=target,
