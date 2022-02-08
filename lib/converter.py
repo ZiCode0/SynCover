@@ -1,4 +1,3 @@
-import argparse
 import datetime
 import os
 import re
@@ -194,8 +193,6 @@ def station_any(target_objects: dict,
         _folder_name_for_start_date = return_target_folder_name_from_path(s_parts[0])
         # make start datetime object
         s_datetime_start = make_start_datetime(date_string=_folder_name_for_start_date)
-        # make start datetime object as str ( for speed-up :D )
-        s_datetime_start_data_str = s_datetime_start.strftime(strings.date_start_format)
 
         # for every file
         for part_path in s_parts:
@@ -376,7 +373,7 @@ def create_target_objects_dict(target_station: str, target_folder: str):
     """
     result_list = os.listdir(target_folder)
     result_list.sort()
-    target_folder_name_for_date = os.path.split(target_folder)[-1]
+    # target_folder_name_for_date = os.path.split(target_folder)[-1]
     result_dict = {target_station: [os.path.join(target_folder, i) for i in result_list]}
     return result_dict
 
