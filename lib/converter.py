@@ -50,6 +50,14 @@ def get_station_line(line, station, channel, stations_dict):
 
 
 def evaluate_channel_value(value, station, channel, stations_dict):
+    """
+    Apply and calculate input value with map of lambda functions
+    :param value:
+    :param station:
+    :param channel:
+    :param stations_dict:
+    :return:
+    """
     # x = float(line[2].strip())
     return eval(stations_dict[station][channel])(value)
 
