@@ -9,7 +9,7 @@ class Console:
     start_converting = 'Converting of <{file}> started..'
     wait_files = 'Waiting for incoming files..'
 
-    success_channel_report = 'Result channel file <{file_path}> saved: {stream_object}'
+    success_channel_report = 'Result channel file saved <{file_path}> - {stream_object}'
 
     warning_error_filename_format = 'File name format for <{file}> is incorrect. Correct example: {filename_example}.'
     warning_error_read_data = 'Error reading: "{value}", line: {line_number} line.\n{ex}.'
