@@ -233,11 +233,11 @@ def station_any(target_objects: dict,
             # open part file
             with open(part_path, 'r') as _f:
                 # get all raw data lines
-                data_from_file = _f.readlines()
+                data_from_part = _f.readlines()
                 # parse all lines
-                for line_index in range(len(data_from_file)):
+                for line_index in range(len(data_from_part)):
                     # split line on defined var parts
-                    l_datetime_text, l_channel_index, l_value_text = data_from_file[line_index].split(' ')
+                    l_datetime_text, l_channel_index, l_value_text = data_from_part[line_index].split(' ')
                     # channel idx correction
                     l_channel_index = int(l_channel_index) - 1
                     # get name by station
@@ -320,7 +320,7 @@ def station_any(target_objects: dict,
                         if logger:
                             logger.warning(
                                 strings.Console.warning_error_read_data.format(
-                                    value=data_from_file[line_index].split('\n')[0],
+                                    value=data_from_part[line_index].split('\n')[0],
                                     line_number=line_index,
                                     ex=ex
                                 ))
