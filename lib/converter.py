@@ -92,38 +92,6 @@ def check_datetime(datetime_str_list, max_normal_gap):
     return True
 
 
-# def trim_extra_values_for_last_trace_hour(mseed, logger=None):
-#     """
-#     Trim extra values in last hour because of "back-in-time" lags and non-normal delta of sample in raw records
-#     :param logger: print log information about trimmed length
-#     :param mseed: target mseed file with trace records
-#     :return: trimmed stream
-#     """
-#     for trace in mseed:
-#         # check if less than 1 hour data and starts from zero 00:00:00.0 datetime
-#         hours_more_or_equal_1 = ((trace.stats.endtime - trace.stats.starttime) / (60 * 60)) > 1
-#         zero_start = str(trace.stats.starttime.time) == '00:00:00'
-#         # parse trace if length is more than
-#         if zero_start and hours_more_or_equal_1:
-#             end_time = trace.stats.endtime
-#             # make endtime to format "YEAR-MONTH-DAY_00:00:00.0 - delta"
-#             trim_utc_datetime = obspy.UTCDateTime(end_time.year, end_time.month, end_time.day,
-#                                                   end_time.hour, 0, 0, 0) - timedelta(seconds=trace.stats.delta)
-#             # get time delta size to trim
-#             time_delta = end_time - trim_utc_datetime
-#             samples_number = str(int(time_delta * 50))
-#             # trim with new endtime marker
-#             trace.trim(starttime=trace.stats.starttime,
-#                        endtime=trim_utc_datetime)
-#             if logger:
-#                 logger.warning(strings.Console.warning_dropped_samples.format(channel=trace.id,
-#                                                                               samples_time=str(time_delta),
-#                                                                               samples_number=samples_number
-#                                                                               ))
-#         # print()  # enable for #debug
-#     return mseed
-
-
 def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_max=60, logger=None):
     """
         Trim extra values in last hour because of non-normal delta of sample in raw records
@@ -451,40 +419,3 @@ def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, samplin
                            sampling_rate=sampling_rate, max_normal_gap=max_normal_gap, export_ext=export_ext,
                            logger=logger, split_channels=split_channels, trim_last_hour_values=trim_last_hour_values)
     return response
-
-
-if __name__ == '__main__':
-    from lib import config
-
-    app_name = 'SynCover.console'
-    app_version = 2.1
-    author = 'ZiCode0'
-    contacts = '[Telegram] @MrFantomz'
-    # args = None
-
-    # define program description
-    text = '{app_name} converter txt_files=>mseed by {author} v.{app_version}\nContacts: {contacts}'.format(
-        app_name=app_name,
-        author=author,
-        app_version=app_version,
-        contacts=contacts)
-    parser = argparse.ArgumentParser(description=text)
-    parser.add_argument('station_name', type=str, help='target station name')
-    parser.add_argument('config', type=str, help='path to "config.json" file')
-    args = parser.parse_args()
-
-    # init paths
-    data_path = os.path.split(os.getcwd())[0]
-    arg_path = os.path.join(data_path, 'data')
-    arg_item = get_list_of_files_in_folder(arg_path)
-
-    # init config.json
-    args.config = config.JsonConfig(file_path=str(args.config))
-
-    txt_folder_2_mseed(target_folder=arg_path,
-                       target_station=args.station_name,
-                       stations_opts_map=args.config.stations,
-                       sampling_rate=args.config.param['sampling_rate'],
-                       max_normal_gap=args.config.param['max_normal_gap'],
-                       logger=None,
-                       split_channels=bool(args.config.param['split_channels']))
