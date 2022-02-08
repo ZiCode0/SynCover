@@ -139,8 +139,9 @@ def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_m
     if _hours_more_or_equal_1:
         # vars to calc extra last hour tail
         _end_time = trace.stats.endtime
+        # sub delta from time to last hour value position
         _end_time_last_hour_start = obspy.UTCDateTime(_end_time.year, _end_time.month, _end_time.day, _end_time.hour,
-                                                      0, 0, 0)
+                                                      0, 0, 0) - trace.stats.delta
         # make endtime to format "YEAR-MONTH-DAY_00:00:00.0 - delta"
         last_hour_time = _end_time - _end_time_last_hour_start
         # make warning because of long extra values in last trace hour
@@ -218,6 +219,8 @@ def station_any(target_objects: dict,
         s_channel_number_aliases = [i for i in s_channels]
         # flag for first init
         s_channel_first_parse = {i: True for i in s_channels}  # [True] * len(channels)
+        # station channels sample counter buffers
+        s_channel_sample_counter = {i: 0 for i in s_channels}
         # use folder name to get date
         _folder_name_for_start_date = return_target_folder_name_from_path(s_parts[0])
         # make start datetime object
@@ -259,9 +262,7 @@ def station_any(target_objects: dict,
                         s_channels[l_channel_full_name] = create_tspair_io_buffer_object(
                             channel_name=l_channel_full_name,
                             sampling_rate=sampling_rate,
-                            datetime_start_obj=
-                            l_datetime_now[
-                                l_channel_full_name]
+                            datetime_start_obj=s_datetime_start
                         )
                         # init line last datetime
                         l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
@@ -289,14 +290,15 @@ def station_any(target_objects: dict,
                             # prepare datetime record str
                             # dt_cur = make_datetime(date=s_datetime_start, time_str=l_datetime_text)
                             # dt_cur_str = dt_cur.strftime(strings.datetime_format)
-                            dt_cur_str = (s_datetime_start_data_str + l_datetime_text).replace(':',
-                                                                                               '')  # .replace('.', '')
-                            _str = f'{dt_cur_str} {l_value_text}'
+                            # dt_cur_str = (s_datetime_start_data_str + l_datetime_text).replace(':', '')
+                            _str = f'{l_value_text}'
                             # add to temp station buffer
                             # s_channels[l_channel_full_name] += _str  # for str
                             s_channels[l_channel_full_name].writelines(_str)  # for stringio
+                            # print(s_channels[l_channel_full_name].getvalue())  # enable for #debug
+                            # increment counter because of recorded/used sample
+                            s_channel_sample_counter[l_channel_full_name] += 1
 
-                            # print(s_channels[l_channel_full_name].getvalue())
                         # # split trace because of gap found
                         else:
                             # log warning output about gap
@@ -306,13 +308,19 @@ def station_any(target_objects: dict,
                                                                                         gap_value=current_delta,
                                                                                         gap_time=l_datetime_text,
                                                                                         line_number=line_index))
+                            # calc datetime => counter + current_delta in samples
+                            _gap_after_datetime = s_datetime_start + timedelta(
+                                seconds=s_channel_sample_counter[l_channel_full_name] / 50 + current_delta)
+
                             # add next part header to buffer
                             _str = make_tspair_buffer_header(
                                 channel_name=l_channel_full_name,
                                 sampling_rate=sampling_rate,
-                                datetime_start_obj=l_datetime_now[l_channel_full_name])
+                                datetime_start_obj=_gap_after_datetime)
                             # s_channels[l_channel_full_name] += _str  # for str
                             s_channels[l_channel_full_name].writelines(_str)  # for StringIO
+                            # add to counter because of gap founded
+                            s_channel_sample_counter[l_channel_full_name] += int(current_delta * sampling_rate)
                             # print()  # enable for #debug
 
                     # ignore bad values
