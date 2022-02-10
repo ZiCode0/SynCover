@@ -49,19 +49,6 @@ def get_station_line(line, station, channel, stations_dict):
     ))
 
 
-def evaluate_channel_value(value, station, channel, stations_dict):
-    """
-    Apply and calculate input value with map of lambda functions
-    :param value:
-    :param station:
-    :param channel:
-    :param stations_dict:
-    :return:
-    """
-    # x = float(line[2].strip())
-    return eval(stations_dict[station][channel])(value)
-
-
 def make_start_datetime(date_string: str):
     """
     Form start datetime
@@ -261,13 +248,8 @@ def station_any(target_objects: dict,
                         # check to find gaps
                         # # if delta is normal
                         if (current_delta <= samples_delta) or (current_delta < max_normal_gap):
-                            # calculate value
-                            _e_value = evaluate_channel_value(value=int(l_value_text),
-                                                              station=s_name,
-                                                              channel=l_channel_full_name,
-                                                              stations_dict=station_opts_map)
                             # prepare for str buffer export
-                            _str = f'{_e_value}\n'
+                            _str = f'{l_value_text}\n'
                             # add to temp station buffer
                             # s_channels[l_channel_full_name] += _str  # for str
                             s_channels[l_channel_full_name].writelines(_str)  # for stringio
