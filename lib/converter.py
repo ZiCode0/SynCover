@@ -125,7 +125,7 @@ def trim_extra_values_for_last_trace_hour(trace: obspy.Trace, extra_values_sec_m
 def make_tspair_buffer_header(channel_name: str,
                               sampling_rate: float,
                               datetime_start_obj: datetime,
-                              data_type='FLOAT',
+                              data_type='INTEGER',
                               data_quality='D'):
     # Header example: TIMESERIES D0_KBG_20_PG1_D, 5 samples, 50 sps, 2021-05-21T00:00:05.0, TSPAIR, INTEGER, Counts
     # channel name format example: NETWORK_STATION_PLACE_CHANNEL_QUALITY(DEFAULT=D)
@@ -307,7 +307,7 @@ def station_any(target_objects: dict,
                 # get raw stream object
                 _channel_stream = obspy.read(BytesIO(value.getvalue().encode()),
                                              format="TSPAIR",
-                                             dtype=np.dtype(np.float32))
+                                             dtype=np.dtype(np.int32))
                 # fill missed channel stream object params
                 for _trace_part in _channel_stream:
                     _trace_part.stats.npts = _trace_part.data.size
@@ -333,7 +333,7 @@ def station_any(target_objects: dict,
             _out_path_file = os.path.join(out_path, _out_path_f_name)
             # write to mseed format
             # # define file export format by extension postfix
-            target.write(_out_path_file)  # , format="MSEED"
+            target.write(_out_path_file, reclen=512, encoding='STEIM2')  # , format="MSEED"
             # print result traces
             if logger:
                 logger.success(strings.Console.success_channel_report.format(stream_object=target,
