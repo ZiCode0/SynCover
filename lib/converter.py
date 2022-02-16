@@ -177,7 +177,7 @@ def station_any(target_objects: dict,
 
     for s_name, s_parts in iter(target_objects.items()):
         # make channels buffer
-        s_channels = {i: None for i in station_opts_map[s_name]}
+        s_channels = {i: None for i in station_opts_map[s_name]['channels']}
         # init station channel names
         s_channel_number_aliases = [i for i in s_channels]
         # flag for first init
@@ -377,7 +377,8 @@ def return_target_folder_name_from_path(path):
 
 
 def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, sampling_rate,
-                       max_normal_gap=0.03, export_ext='.mseed', logger=None, split_channels=False, trim_last_hour_values=False):
+                       max_normal_gap=0.03, export_ext='.mseed',
+                       logger=None, split_channels=False, trim_last_hour_values=False):
     """
     Convert txt files of target folder to asc format
     :param target_folder: target folder to convert
@@ -405,6 +406,7 @@ def txt_folder_2_mseed(target_folder, target_station, stations_opts_map, samplin
     """
     response = station_any(target_objects=target_objects,
                            out_path=output_folder, station_opts_map=stations_opts_map,
-                           sampling_rate=sampling_rate, max_normal_gap=max_normal_gap, export_ext=export_ext,
+                           sampling_rate=sampling_rate,
+                           max_normal_gap=max_normal_gap, export_ext=export_ext,
                            logger=logger, split_channels=split_channels, trim_last_hour_values=trim_last_hour_values)
     return response

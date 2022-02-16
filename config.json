@@ -4,23 +4,26 @@
     "data_folder": "data",
     "result_ext": ".mseed",
     "trim_last_hour_extra_values": 1,
-    "sampling_rate": 50,
-    "max_normal_gap": 0.035,
+    "max_normal_gap": 0.0,
     "split_channels": 1,
-    "station_list": {"skr": {"D0_SKR_00_T": "",
-                             "D0_SKR_00_PG": "",
-                             "D0_SKR_00_PG1": ""
+    "station_list": {"skr": {"sampling_rate": 50,
+                             "channels": ["D0_SKR_00_P",
+                                          "D0_SKR_00_PG",
+                                          "D0_SKR_00_PG1"]
                             },
-                     "kly": {"D0_KLY_00_PG": ""
-                            },
-                     "kbg": {"D0_KBG_00_PG": "",
-                             "D0_KBG_00_PG1": "",
-                             "D0_KBG_00_PG2": "",
-                             "D0_KBG_00_PG3": ""
-                            },
-                     "pet": {"D0_PET_00_PG": "",
-                             "D0_PET_00_PG1": ""
-                            }
-                    }
+                     "kly": {"sampling_rate": 50,
+                             "channels": ["D0_KLY_00_PG"]
+                     },
+                     "kbg": {"sampling_rate": 50,
+                             "channels": ["D0_KBG_00_PG",
+                                          "D0_KBG_00_PG1",
+                                          "D0_KBG_00_PG2",
+                                          "D0_KBG_00_PG3"]
+                     },
+                     "pet": {"sampling_rate": 50,
+                             "channels": ["D0_PET_00_PG",
+                                          "D0_PET_00_PG1"]
+                     }
+    }
   }
 }

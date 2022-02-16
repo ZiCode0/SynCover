@@ -41,12 +41,13 @@ def main():
                 target_folder = ar.unzip(file_path=target_zip_file,
                                          repeat_in_seconds=config.param['repeat_reading_zip_file_in_seconds'])
                 files.move_from_sub_folder(target_folder)
+                _target_station_name = station.define_station_by_pathname(target_pathname=target_folder,
+                                                                          stations=config.stations)
+                _sampling_rate = config.stations[_target_station_name]['sampling_rate']
                 parse_response = converter.txt_folder_2_mseed(target_folder=target_folder,
-                                                              target_station=station.define_station_by_pathname(
-                                                                  target_pathname=target_folder,
-                                                                  stations=config.stations),
+                                                              target_station=_target_station_name,
                                                               stations_opts_map=config.stations,
-                                                              sampling_rate=config.param['sampling_rate'],
+                                                              sampling_rate=_sampling_rate,
                                                               max_normal_gap=config.param['max_normal_gap'],
                                                               export_ext=config.param['result_ext'],
                                                               logger=logger,
