@@ -146,6 +146,6 @@ dmypy.json
 .idea/
 
 # User exclude
-./config.json
 /data*/
 /test/
+/config.json
