@@ -149,3 +149,5 @@ dmypy.json
 /data*/
 /test/
 /config.json
+# exclude log .zip files
+*.zip
