@@ -195,104 +195,109 @@ def station_any(target_objects: dict,
             # if logger:
             #     logger.info(f'Parsing part file: {part_path}..')  # enable for #debug to print current part
             # open part file
-            with open(part_path, 'r') as _f:
-                # get all raw data lines
-                data_from_part = _f.readlines()
-                # parse all lines
-                for line_index in range(len(data_from_part)):
-                    # split line on defined var parts
-                    l_datetime_text, l_channel_index, l_value_text = data_from_part[line_index].split(' ')
-                    # channel idx correction
-                    l_channel_index = int(l_channel_index) - 1
-                    # get name by station
-                    # check if channel with target index exist
-                    try:
-                        l_channel_full_name = s_channel_number_aliases[l_channel_index]
-                    except IndexError:
-                        continue
-                    # print(l_datetime_text, l_channel_full_name, l_value_text)  # enable for #debug
-                    # get now datetime by current sample string line
-                    l_datetime_now[l_channel_full_name] = make_datetime(date=s_datetime_start,
-                                                                        time_str=l_datetime_text)
+            try:
+                with open(part_path, 'r') as _f:
+                    # get all raw data lines
+                    data_from_part = _f.readlines()
+                    # parse all lines
+                    for line_index in range(len(data_from_part)):
+                        # split line on defined var parts
+                        l_datetime_text, l_channel_index, l_value_text = data_from_part[line_index].split(' ')
+                        # channel idx correction
+                        l_channel_index = int(l_channel_index) - 1
+                        # get name by station
+                        # check if channel with target index exist
+                        try:
+                            l_channel_full_name = s_channel_number_aliases[l_channel_index]
+                        except IndexError:
+                            continue
+                        # print(l_datetime_text, l_channel_full_name, l_value_text)  # enable for #debug
+                        # get now datetime by current sample string line
+                        l_datetime_now[l_channel_full_name] = make_datetime(date=s_datetime_start,
+                                                                            time_str=l_datetime_text)
 
-                    # add first hour:min:sec:ms to start time
-                    if s_channel_first_parse[l_channel_full_name]:
-                        # mark for passed first run
-                        s_channel_first_parse[l_channel_full_name] = False
-                        # init channel buffer
-                        s_channels[l_channel_full_name] = create_tspair_io_buffer_object(
-                            channel_name=l_channel_full_name,
-                            sampling_rate=sampling_rate,
-                            datetime_start_obj=s_datetime_start
-                        )
-                        # init line last datetime
-                        l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
-                    # calc current delta
-                    # round by calculated numbers after point
-                    current_delta = round((l_datetime_now[l_channel_full_name] - l_datetime_prev[l_channel_full_name])
-                                          .total_seconds(),
-                                          delta_after_point_numbers)
-                    # check if datetime jumped back and
-                    if current_delta < 0:
-                        # lag in seconds
-                        sec_lag = round(current_delta / sampling_rate, 6)
-                        # print warning
-                        logger.warning(strings.Console.warning_back_time_lag.format(channel=l_channel_full_name,
-                                                                                    file_part=part_path,
-                                                                                    sec_lag=sec_lag,
-                                                                                    line_index=line_index))
-                        # RETURN FAIL STATUS
-                        return 500
-
-                    try:
-                        # check to find gaps
-                        # # if delta is normal
-                        if (current_delta <= samples_delta) or (current_delta < max_normal_gap):
-                            # prepare for str buffer export
-                            _str = f'{l_value_text}\n'
-                            # add to temp station buffer
-                            # s_channels[l_channel_full_name] += _str  # for str
-                            s_channels[l_channel_full_name].writelines(_str)  # for stringio
-                            # print(s_channels[l_channel_full_name].getvalue())  # enable for #debug
-                            # increment counter because of recorded/used sample
-                            s_channel_sample_counter[l_channel_full_name] += 1
-
-                        # # split trace because of gap found
-                        else:
-                            # log warning output about gap
-                            if logger:
-                                logger.warning(strings.Console.warning_gap_found.format(channel=l_channel_full_name,
-                                                                                        file_part=part_path,
-                                                                                        gap_value=current_delta,
-                                                                                        gap_time=l_datetime_text,
-                                                                                        line_number=line_index))
-                            # calc datetime => counter + current_delta in samples
-                            _gap_after_datetime = s_datetime_start + timedelta(
-                                seconds=s_channel_sample_counter[l_channel_full_name] / 50 + current_delta)
-
-                            # add next part header to buffer
-                            _str = make_tspair_buffer_header(
+                        # add first hour:min:sec:ms to start time
+                        if s_channel_first_parse[l_channel_full_name]:
+                            # mark for passed first run
+                            s_channel_first_parse[l_channel_full_name] = False
+                            # init channel buffer
+                            s_channels[l_channel_full_name] = create_tspair_io_buffer_object(
                                 channel_name=l_channel_full_name,
                                 sampling_rate=sampling_rate,
-                                datetime_start_obj=_gap_after_datetime)
-                            # s_channels[l_channel_full_name] += _str  # for str
-                            s_channels[l_channel_full_name].writelines(_str)  # for StringIO
-                            # add to counter because of gap founded
-                            s_channel_sample_counter[l_channel_full_name] += int(current_delta * sampling_rate)
-                            # print()  # enable for #debug
+                                datetime_start_obj=s_datetime_start
+                            )
+                            # init line last datetime
+                            l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
+                        # calc current delta
+                        # round by calculated numbers after point
+                        current_delta = round((l_datetime_now[l_channel_full_name] - l_datetime_prev[l_channel_full_name])
+                                              .total_seconds(),
+                                              delta_after_point_numbers)
+                        # check if datetime jumped back and
+                        if current_delta < 0:
+                            # lag in seconds
+                            sec_lag = round(current_delta / sampling_rate, 6)
+                            # print warning
+                            logger.warning(strings.Console.warning_back_time_lag.format(channel=l_channel_full_name,
+                                                                                        file_part=part_path,
+                                                                                        sec_lag=sec_lag,
+                                                                                        line_index=line_index))
+                            # RETURN FAIL STATUS
+                            return 500
 
-                    # ignore bad values
-                    except Exception as ex:
-                        if logger:
-                            logger.warning(
-                                strings.Console.warning_error_read_data.format(
-                                    value=data_from_part[line_index].split('\n')[0],
-                                    line_number=line_index,
-                                    ex=ex
-                                ))
+                        try:
+                            # check to find gaps
+                            # # if delta is normal
+                            if (current_delta <= samples_delta) or (current_delta < max_normal_gap):
+                                # prepare for str buffer export
+                                _str = f'{l_value_text}\n'
+                                # add to temp station buffer
+                                # s_channels[l_channel_full_name] += _str  # for str
+                                s_channels[l_channel_full_name].writelines(_str)  # for stringio
+                                # print(s_channels[l_channel_full_name].getvalue())  # enable for #debug
+                                # increment counter because of recorded/used sample
+                                s_channel_sample_counter[l_channel_full_name] += 1
 
-                    # set last line datetime
-                    l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
+                            # # split trace because of gap found
+                            else:
+                                # log warning output about gap
+                                if logger:
+                                    logger.warning(strings.Console.warning_gap_found.format(channel=l_channel_full_name,
+                                                                                            file_part=part_path,
+                                                                                            gap_value=current_delta,
+                                                                                            gap_time=l_datetime_text,
+                                                                                            line_number=line_index))
+                                # calc datetime => counter + current_delta in samples
+                                _gap_after_datetime = s_datetime_start + timedelta(
+                                    seconds=s_channel_sample_counter[l_channel_full_name] / 50 + current_delta)
+
+                                # add next part header to buffer
+                                _str = make_tspair_buffer_header(
+                                    channel_name=l_channel_full_name,
+                                    sampling_rate=sampling_rate,
+                                    datetime_start_obj=_gap_after_datetime)
+                                # s_channels[l_channel_full_name] += _str  # for str
+                                s_channels[l_channel_full_name].writelines(_str)  # for StringIO
+                                # add to counter because of gap founded
+                                s_channel_sample_counter[l_channel_full_name] += int(current_delta * sampling_rate)
+                                # print()  # enable for #debug
+
+                        # ignore bad values
+                        except Exception as ex:
+                            if logger:
+                                logger.warning(
+                                    strings.Console.warning_error_read_data.format(
+                                        value=data_from_part[line_index].split('\n')[0],
+                                        line_number=line_index,
+                                        ex=ex
+                                    ))
+
+                        # set last line datetime
+                        l_datetime_prev[l_channel_full_name] = l_datetime_now[l_channel_full_name]
+            # skip folders while parsing parts
+            # # PermissionError > Win arch
+            except (IsADirectoryError, PermissionError):
+                continue
 
         # make export buffer
         export_targets = []
