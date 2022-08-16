@@ -11,12 +11,14 @@ from lib import converter
 from lib import strings, pattern
 from lib.config import JsonConfig
 
+CONFIG_FILE = 'config.json'
+
 
 @logger.catch
 def main():
     awaiting_flag = True
     logger_lib.init_logger(strings.__project_name__)
-    config = JsonConfig(file_path='config.json')  # importlib.import_module('lib.config')
+    config = JsonConfig(file_path=CONFIG_FILE)  # importlib.import_module('lib.config')
     files.init_work_dir(data_folder=config.param['data_folder'])
     logger.info(strings.Console.program_start)
     while True:
@@ -26,7 +28,7 @@ def main():
             awaiting_flag = True
             logger.info(strings.Console.reloading_config)
             # importlib.reload(config)
-            config = JsonConfig(file_path='config.json')
+            config = JsonConfig(file_path=CONFIG_FILE)
             for file in data_files:
                 logger.info(strings.Console.start_converting.format(file=file))
                 # skip if filename format is incorrect
