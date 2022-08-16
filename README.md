@@ -26,12 +26,15 @@ python -m venv .venv
 source .venv/bin/activate  # windows: .venv\\Scripts\\activate.bat
 # install dependencies
 pip install -r requirements.txt
+# Copy and edit config file(example/config.json) to root project folder 
+cp example/config.json .
 # run script
 python main.py
 ```
 
 
 ## Usage
+Example json config file: [example/config.json](https://github.com/ZiCode0/SynCover/tree/main/example/config.json)
 ### Windows
 Start [SynCover.bat](https://github.com/ZiCode0/SynCover/blob/main/SynCover.bat) file.
 ### Linux
