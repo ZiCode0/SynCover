@@ -10,7 +10,7 @@
 [![Github watchers](https://img.shields.io/github/watchers/ZiCode0/DrumCorr?label=Watch&style=for-the-badge)](https://github.com/ZiCode0/DrumCorr)
 
 
-MeteoCom is a real-time converter of geophysical data in asc/mseed format..
+MeteoCom is a real-time converter of geophysical data in asc/mseed format.
 
 ## Installation
 
