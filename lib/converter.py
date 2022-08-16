@@ -337,8 +337,12 @@ def station_any(target_objects: dict,
             _out_path_f_name = f'{_folder_name_for_start_date}_{target.traces[0].id}{export_ext}'
             _out_path_file = os.path.join(out_path, _out_path_f_name)
             # write to mseed format
+            # # export to MSEED format
+            if export_ext.lower() == '.mseed':
+                target.write(_out_path_file, reclen=512, encoding='STEIM2')  # , format="MSEED"
             # # define file export format by extension postfix
-            target.write(_out_path_file, reclen=512, encoding='STEIM2')  # , format="MSEED"
+            else:
+                target.write(_out_path_file)
             # print result traces
             if logger:
                 logger.success(strings.Console.success_channel_report.format(stream_object=target,
