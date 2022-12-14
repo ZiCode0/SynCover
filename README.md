@@ -1,4 +1,4 @@
-# Meteocom
+# SynCover
 [![forthebadge](https://forthebadge.com/images/badges/built-with-love.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/uses-brains.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/not-a-bug-a-feature.svg)](https://forthebadge.com)
@@ -10,7 +10,7 @@
 [![Github watchers](https://img.shields.io/github/watchers/ZiCode0/DrumCorr?label=Watch&style=for-the-badge)](https://github.com/ZiCode0/DrumCorr)
 
 
-MeteoCom is a real-time converter of geophysical data in asc/mseed format.
+SynCover is a real-time converter of geophysical data in asc/mseed format.
 
 ## Installation
 
